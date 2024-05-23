@@ -6,9 +6,8 @@ use std::error::Error;
 #[derive(Debug, Deserialize)]
 struct Location {
     x: i32,
-    y: i32,
-    z: i32,  // Not used in this plot, but retained for completeness
-    date: String,
+    y: i32, // Optional for future use
+    date: String,  // Optional for sorting
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -18,12 +17,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Create a reader for the CSV
     let mut rdr = Reader::from_path(csv_file_path)?;
 
-    // Load data and sort by the 'date' column to maintain proper order
+    // Load data and sort by 'date' to maintain proper order
     let mut locations: Vec<Location> = rdr.deserialize().collect::<Result<_, _>>()?;
-    locations.sort_by(|a, b| a.date.cmp(&b.date));
+    locations.sort_by(|a, b| a.date.cmp(&b.date));  // Ensure proper sequence
 
-    // Set up plot
-    let root = BitMapBackend::new("zandvoort_track.png", (1024, 1024)).into_drawing_area();
+    // Set up plot with adjusted Cartesian limits
+    let root = BitMapBackend::new("zandvoort_track_adjusted.png", (1024, 1024)).into_drawing_area();
     root.fill(&WHITE)?;
 
     let mut chart = ChartBuilder::on(&root)
@@ -31,14 +30,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         .margin(20)
         .x_label_area_size(40)
         .y_label_area_size(40)
-        .build_cartesian_2d(-4500..8500, -16000..5500)?;  // Adjusted limits
+        .build_cartesian_2d(-4500..8500, -16000..5000)?;  // Adjusted limits
 
     chart.configure_mesh().draw()?;
 
     // Plot each point with a larger size for better visibility
     chart.draw_series(PointSeries::of_element(
         locations.iter().map(|loc| (loc.x, loc.y)),
-        2, // Point size
+        3,  // Larger point size
         &RED,
         &|coord, size, style| {
             EmptyElement::at(coord) + Circle::new((0, 0), size, style.filled())
@@ -47,7 +46,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Save the plot
     root.present()?;
-    println!("Plot is generated and saved as zandvoort_track.png.");
-    
+    println!("Plot is generated and saved as zandvoort_track_adjusted.png.");
+
     Ok(())
 }
